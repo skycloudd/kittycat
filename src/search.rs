@@ -9,7 +9,7 @@ use std::{
 };
 
 const MAX_PLY: u8 = 64;
-pub const INFINITY: i32 = 10000;
+pub const INFINITY: i16 = 10000;
 
 pub enum EngineToSearch {
     Start(SearchMode),
@@ -23,7 +23,7 @@ pub enum SearchToEngine {
         depth: u8,
         seldepth: u8,
         time: Duration,
-        cp: i32,
+        cp: i16,
         nodes: u64,
         nps: u64,
         pv: Vec<ChessMove>,
@@ -195,9 +195,9 @@ impl Search {
         refs: &mut SearchRefs,
         pv: &mut Vec<ChessMove>,
         mut depth: u8,
-        mut alpha: i32,
-        beta: i32,
-    ) -> i32 {
+        mut alpha: i16,
+        beta: i16,
+    ) -> i16 {
         if refs.search_state.nodes % 0x2000 == 0 {
             check_terminate(refs);
         }
@@ -254,7 +254,7 @@ impl Search {
 
         if is_game_over {
             if is_check {
-                return -INFINITY + refs.search_state.ply as i32;
+                return -INFINITY + refs.search_state.ply as i16;
             } else {
                 return 0;
             }
@@ -266,9 +266,9 @@ impl Search {
     fn quiescence(
         refs: &mut SearchRefs,
         pv: &mut Vec<ChessMove>,
-        mut alpha: i32,
-        beta: i32,
-    ) -> i32 {
+        mut alpha: i16,
+        beta: i16,
+    ) -> i16 {
         if refs.search_state.nodes & 0x2000 == 0 {
             check_terminate(refs);
         }

@@ -14,7 +14,7 @@ pub enum EngineToUci {
         depth: u8,
         seldepth: u8,
         time: Duration,
-        cp: i32,
+        cp: i16,
         nodes: u64,
         nps: u64,
         pv: Vec<chess::ChessMove>,
@@ -211,7 +211,7 @@ impl Uci {
                                 UciInfoAttribute::SelDepth(seldepth),
                                 UciInfoAttribute::Time(time),
                                 UciInfoAttribute::Score {
-                                    cp,
+                                    cp: cp.map(|cp| cp as i32),
                                     mate,
                                     lower_bound: None,
                                     upper_bound: None

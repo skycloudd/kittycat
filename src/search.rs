@@ -8,8 +8,18 @@ use std::{
     time::Instant,
 };
 
-const MAX_PLY: u8 = 64;
+const MAX_PLY: u8 = 80;
 pub const INFINITY: i16 = 10000;
+
+const MVV_LVA: [[u8; 7]; 7] = [
+    [0, 0, 0, 0, 0, 0, 0],       // victim K, attacker K, Q, R, B, N, P, None
+    [50, 51, 52, 53, 54, 55, 0], // victim Q, attacker K, Q, R, B, N, P, None
+    [40, 41, 42, 43, 44, 45, 0], // victim R, attacker K, Q, R, B, N, P, None
+    [30, 31, 32, 33, 34, 35, 0], // victim B, attacker K, Q, R, B, N, P, None
+    [20, 21, 22, 23, 24, 25, 0], // victim N, attacker K, Q, R, B, N, P, None
+    [10, 11, 12, 13, 14, 15, 0], // victim P, attacker K, Q, R, B, N, P, None
+    [0, 0, 0, 0, 0, 0, 0],       // victim None, attacker K, Q, R, B, N, P, None
+];
 
 pub enum EngineToSearch {
     Start(SearchMode),
@@ -367,10 +377,13 @@ fn move_ordering(refs: &mut SearchRefs, pv: Option<ChessMove>) -> Vec<ChessMove>
     for legal in &mut legal_moves {
         if let Some(pv) = pv {
             if legal == pv {
-                moves.push((legal, 0));
+                moves.push((legal, 100));
             }
         } else {
-            moves.push((legal, 1));
+            let score = MVV_LVA[piece_index_mvv_lva(board.piece_on(legal.get_dest()))]
+                [piece_index_mvv_lva(board.piece_on(legal.get_source()))];
+
+            moves.push((legal, score));
         }
     }
 
@@ -379,16 +392,28 @@ fn move_ordering(refs: &mut SearchRefs, pv: Option<ChessMove>) -> Vec<ChessMove>
     for legal in legal_moves {
         if let Some(pv) = pv {
             if legal == pv {
-                moves.push((legal, 0));
+                moves.push((legal, 100));
             }
         } else {
-            moves.push((legal, 2));
+            moves.push((legal, 0));
         }
     }
 
-    moves.sort_unstable_by_key(|(_, score)| *score);
+    moves.sort_unstable_by(|a, b| b.1.cmp(&a.1));
 
     moves.into_iter().map(|(m, _)| m).collect()
+}
+
+fn piece_index_mvv_lva(piece: Option<Piece>) -> usize {
+    match piece {
+        Some(Piece::King) => 0,
+        Some(Piece::Queen) => 1,
+        Some(Piece::Rook) => 2,
+        Some(Piece::Bishop) => 3,
+        Some(Piece::Knight) => 4,
+        Some(Piece::Pawn) => 5,
+        None => 6,
+    }
 }
 
 fn make_move(refs: &mut SearchRefs, legal: ChessMove) -> Board {

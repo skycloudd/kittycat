@@ -75,8 +75,8 @@ impl Search {
                         board: Arc::clone(&board),
                         control_rx: &control_rx,
                         report_tx: &report_tx,
-                        search_mode: search_mode.unwrap(),
-                        search_state: SearchState::default(),
+                        search_mode: &search_mode.unwrap(),
+                        search_state: &mut SearchState::default(),
                         history: Arc::clone(&history),
                     };
 
@@ -507,8 +507,8 @@ struct SearchRefs<'a> {
     board: Arc<RwLock<Board>>,
     control_rx: &'a Receiver<EngineToSearch>,
     report_tx: &'a Sender<EngineReport>,
-    search_mode: SearchMode,
-    search_state: SearchState,
+    search_mode: &'a SearchMode,
+    search_state: &'a mut SearchState,
     history: Arc<RwLock<Vec<History>>>,
 }
 

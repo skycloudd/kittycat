@@ -144,8 +144,8 @@ impl Uci {
                                         UciToEngine::GoMoveTime(movetime)
                                     }
                                 }
-                            } else if let Some(_) = search_control {
-                                todo!()
+                            } else if let Some(search_control) = search_control {
+                                todo!("{:?}", search_control)
                             } else {
                                 unreachable!()
                             }

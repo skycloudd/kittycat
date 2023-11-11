@@ -224,7 +224,7 @@ impl Search {
 
         let ordered_moves = move_ordering(refs, pv.get(0).copied());
 
-        let is_game_over = ordered_moves.len() == 0;
+        let is_game_over = ordered_moves.is_empty();
 
         for legal in ordered_moves {
             let old_pos = make_move(refs, legal);

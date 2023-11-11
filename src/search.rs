@@ -295,6 +295,8 @@ impl Search {
 
         refs.search_state.nodes += 1;
 
+        let mut do_pvs = false;
+
         let eval = evaluate(&refs.board.read().unwrap());
 
         if eval >= beta {
@@ -319,7 +321,17 @@ impl Search {
 
             let mut node_pv = Vec::new();
 
-            let score = -Self::quiescence(refs, &mut node_pv, -beta, -alpha);
+            let mut score;
+
+            if do_pvs {
+                score = -Self::quiescence(refs, &mut node_pv, -alpha - 1, -alpha);
+
+                if score > alpha && score < beta {
+                    score = -Self::quiescence(refs, &mut node_pv, -beta, -alpha);
+                }
+            } else {
+                score = -Self::quiescence(refs, &mut node_pv, -beta, -alpha);
+            }
 
             unmake_move(refs, old_pos);
 
@@ -329,6 +341,8 @@ impl Search {
 
             if score > alpha {
                 alpha = score;
+
+                do_pvs = true;
 
                 pv.clear();
                 pv.push(legal);
@@ -421,7 +435,7 @@ fn check_terminate(refs: &mut SearchRefs) {
         SearchMode::Infinite => {}
         SearchMode::MoveTime(movetime) => {
             if refs.search_state.start_time.unwrap().elapsed().as_millis()
-                >= movetime.num_milliseconds() as u128
+                > movetime.num_milliseconds() as u128
             {
                 refs.search_state.terminate = Some(SearchTerminate::Stop);
             }

@@ -212,6 +212,8 @@ impl Search {
 
         refs.search_state.nodes += 1;
 
+        let mut do_pvs = false;
+
         let is_check = refs.board.read().unwrap().checkers() != &EMPTY;
 
         if is_check {
@@ -234,7 +236,15 @@ impl Search {
             let mut eval_score = 0;
 
             if !is_draw(refs) {
-                eval_score = -Self::negamax(refs, &mut node_pv, depth - 1, -beta, -alpha);
+                if do_pvs {
+                    eval_score = -Self::negamax(refs, &mut node_pv, depth - 1, -alpha - 1, -alpha);
+
+                    if eval_score > alpha && eval_score < beta {
+                        eval_score = -Self::negamax(refs, &mut node_pv, depth - 1, -beta, -alpha);
+                    }
+                } else {
+                    eval_score = -Self::negamax(refs, &mut node_pv, depth - 1, -beta, -alpha);
+                }
             }
 
             unmake_move(refs, old_pos);
@@ -245,6 +255,8 @@ impl Search {
 
             if eval_score > alpha {
                 alpha = eval_score;
+
+                do_pvs = true;
 
                 pv.clear();
                 pv.push(legal);

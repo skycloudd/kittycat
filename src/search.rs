@@ -203,7 +203,10 @@ impl Search {
             }
         }
 
-        (best_move.unwrap(), refs.search_state.terminate)
+        (
+            best_move.unwrap_or(ChessMove::default()),
+            refs.search_state.terminate,
+        )
     }
 
     fn negamax(

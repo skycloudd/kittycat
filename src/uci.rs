@@ -134,10 +134,12 @@ impl Uci {
                                         black_increment,
                                         moves_to_go,
                                     } => UciToEngine::GoGameTime(GameTime {
-                                        white_time: white_time.unwrap(),
-                                        black_time: black_time.unwrap(),
-                                        white_increment: white_increment.unwrap(),
-                                        black_increment: black_increment.unwrap(),
+                                        white_time: white_time.unwrap_or(Duration::zero()),
+                                        black_time: black_time.unwrap_or(Duration::zero()),
+                                        white_increment: white_increment
+                                            .unwrap_or(Duration::zero()),
+                                        black_increment: black_increment
+                                            .unwrap_or(Duration::zero()),
                                         moves_to_go,
                                     }),
                                     UciTimeControl::MoveTime(movetime) => {

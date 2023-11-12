@@ -1,4 +1,4 @@
-use crate::{search::INFINITY, EngineReport};
+use crate::{evaluate::Eval, search::INFINITY, EngineReport};
 use chess::ChessMove;
 use chrono::Duration;
 use crossbeam_channel::Sender;
@@ -14,7 +14,7 @@ pub enum EngineToUci {
         depth: u8,
         seldepth: u8,
         time: Duration,
-        cp: i16,
+        cp: Eval,
         nodes: u64,
         nps: u64,
         pv: Vec<chess::ChessMove>,

@@ -1,4 +1,8 @@
-use crate::{evaluate::evaluate, uci::GameTime, EngineReport};
+use crate::{
+    evaluate::{evaluate, Eval},
+    uci::GameTime,
+    EngineReport,
+};
 use chess::{Board, ChessMove, Color, MoveGen, Piece, EMPTY};
 use chrono::Duration;
 use crossbeam_channel::{Receiver, Sender};
@@ -9,7 +13,7 @@ use std::{
 };
 
 const MAX_PLY: u8 = 80;
-pub const INFINITY: i16 = 10000;
+pub const INFINITY: Eval = 10000;
 
 const MVV_LVA: [[u8; 7]; 7] = [
     [0, 0, 0, 0, 0, 0, 0],       // victim K, attacker K, Q, R, B, N, P, None
@@ -33,7 +37,7 @@ pub enum SearchToEngine {
         depth: u8,
         seldepth: u8,
         time: Duration,
-        cp: i16,
+        cp: Eval,
         nodes: u64,
         nps: u64,
         pv: Vec<ChessMove>,
@@ -205,9 +209,9 @@ impl Search {
         refs: &mut SearchRefs,
         pv: &mut Vec<ChessMove>,
         mut depth: u8,
-        mut alpha: i16,
-        beta: i16,
-    ) -> i16 {
+        mut alpha: Eval,
+        beta: Eval,
+    ) -> Eval {
         if refs.search_state.nodes % 0x2000 == 0 {
             check_terminate(refs);
         }
@@ -234,7 +238,7 @@ impl Search {
             return Self::quiescence(refs, pv, alpha, beta);
         }
 
-        let ordered_moves = move_ordering(refs, pv.get(0).copied());
+        let ordered_moves = move_ordering(refs, pv.first().copied());
 
         let is_game_over = ordered_moves.is_empty();
 
@@ -276,7 +280,7 @@ impl Search {
 
         if is_game_over {
             if is_check {
-                return -INFINITY + refs.search_state.ply as i16;
+                return -INFINITY + refs.search_state.ply as Eval;
             } else {
                 return 0;
             }
@@ -288,9 +292,9 @@ impl Search {
     fn quiescence(
         refs: &mut SearchRefs,
         pv: &mut Vec<ChessMove>,
-        mut alpha: i16,
-        beta: i16,
-    ) -> i16 {
+        mut alpha: Eval,
+        beta: Eval,
+    ) -> Eval {
         if refs.search_state.nodes & 0x2000 == 0 {
             check_terminate(refs);
         }
@@ -367,7 +371,7 @@ impl Search {
 fn move_ordering(refs: &mut SearchRefs, pv: Option<ChessMove>) -> Vec<ChessMove> {
     let board = refs.board.read().unwrap();
 
-    let mut legal_moves = MoveGen::new_legal(&refs.board.read().unwrap());
+    let mut legal_moves = MoveGen::new_legal(&board);
 
     let mut moves = Vec::with_capacity(legal_moves.len());
 
@@ -375,28 +379,24 @@ fn move_ordering(refs: &mut SearchRefs, pv: Option<ChessMove>) -> Vec<ChessMove>
     legal_moves.set_iterator_mask(*targets);
 
     for legal in &mut legal_moves {
-        if let Some(pv) = pv {
-            if legal == pv {
-                moves.push((legal, 100));
-            }
-        } else {
-            let score = MVV_LVA[piece_index_mvv_lva(board.piece_on(legal.get_dest()))]
-                [piece_index_mvv_lva(board.piece_on(legal.get_source()))];
+        moves.push(match pv {
+            Some(pv) if legal == pv => (legal, 100),
+            _ => {
+                let score = MVV_LVA[piece_index(board.piece_on(legal.get_dest()))]
+                    [piece_index(board.piece_on(legal.get_source()))];
 
-            moves.push((legal, score));
-        }
+                (legal, score)
+            }
+        });
     }
 
     legal_moves.set_iterator_mask(!EMPTY);
 
     for legal in legal_moves {
-        if let Some(pv) = pv {
-            if legal == pv {
-                moves.push((legal, 100));
-            }
-        } else {
-            moves.push((legal, 0));
-        }
+        moves.push(match pv {
+            Some(pv) if legal == pv => (legal, 100),
+            _ => (legal, 0),
+        });
     }
 
     moves.sort_unstable_by(|a, b| b.1.cmp(&a.1));
@@ -404,7 +404,7 @@ fn move_ordering(refs: &mut SearchRefs, pv: Option<ChessMove>) -> Vec<ChessMove>
     moves.into_iter().map(|(m, _)| m).collect()
 }
 
-fn piece_index_mvv_lva(piece: Option<Piece>) -> usize {
+fn piece_index(piece: Option<Piece>) -> usize {
     match piece {
         Some(Piece::King) => 0,
         Some(Piece::Queen) => 1,
